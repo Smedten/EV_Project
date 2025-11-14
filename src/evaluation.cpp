@@ -149,25 +149,37 @@ void runAggregationScenarios(const vector<Flexoffer> &normalOffers, const vector
         double baseline=0.0;
         double agg_cost=0.0;
 
-        int n = min(s.usedOffers, (int)normalOffers.size()); //check that chosen size is less than what we actually have
-        vector<Flexoffer> subNormal(normalOffers.begin(), normalOffers.begin() + n);    
+        int scenarioSize = 0;
+        if (s.aggregator_type == 0) {
+            scenarioSize = min(s.usedOffers, static_cast<int>(normalOffers.size()));
+        } else if (s.aggregator_type == 1) {
+            scenarioSize = min(s.usedOffers, static_cast<int>(tecOffers.size()));
+        } else if (s.aggregator_type == 2) {
+            scenarioSize = min(s.usedOffers, static_cast<int>(dfos.size()));
+        }
+
+        if (scenarioSize == 0) {
+            cout << "Skipping scenario " << scenario_id << " [type=" << s.aggregator_type
+                 << "] due to unavailable flex-offers." << endl;
+            continue;
+        }
 
         auto t_start = chrono::steady_clock::now();
         if (s.aggregator_type == 0) { //thsi is for normal FOs
+            vector<Flexoffer> subNormal(normalOffers.begin(), normalOffers.begin() + scenarioSize);
             baseline = computeBaselineCost(subNormal, spotPrices);
             agg_cost = computeAggregatedCost(subNormal, s.est_threshold, s.lst_threshold, s.max_group_size, s.align, spotPrices);
         }
         else if (s.aggregator_type == 1) { // this is for tec FOs
-            vector<Tec_flexoffer> subTec(tecOffers.begin(), tecOffers.begin() + n);
+            vector<Tec_flexoffer> subTec(tecOffers.begin(), tecOffers.begin() + scenarioSize);
             baseline = computeBaselineCost(subTec, spotPrices);
             agg_cost = computeAggregatedCost(subTec, s.est_threshold, s.lst_threshold, s.max_group_size, s.align, spotPrices);
         }
         else if (s.aggregator_type == 2){ // DFO
-            int n = min(s.usedOffers, (int)dfos.size());
-            vector<DFO> subDFOs(dfos.begin(), dfos.begin() + n);
+            vector<DFO> subDFOs(dfos.begin(), dfos.begin() + scenarioSize);
             baseline = computeBaselineCost(subDFOs, spotPrices);
             agg_cost = computeAggregatedCost(subDFOs, spotPrices, s.max_group_size);
-        } 
+        }
 
         auto t_end = chrono::steady_clock::now();
         double savings = baseline - agg_cost;
@@ -175,10 +187,10 @@ void runAggregationScenarios(const vector<Flexoffer> &normalOffers, const vector
         double scenarioTimeSec = chrono::duration<double>(t_end - t_start).count();
 
         file << scenario_id << "," << s.aggregator_type << "," << static_cast<int>(s.align) << "," << s.est_threshold << "," << s.lst_threshold << ","
-        << s.max_group_size << "," << baseline << "," << agg_cost << "," << savings << "," << scenarioTimeSec << "," << n << "\n";
+        << s.max_group_size << "," << baseline << "," << agg_cost << "," << savings << "," << scenarioTimeSec << "," << scenarioSize << "\n";
 
-        cout << "Scenario " << scenario_id << " [type=" << s.aggregator_type << " alignment= " << static_cast<int>(s.align) << "] => " << "est=" << s.est_threshold << ", lst=" << s.lst_threshold 
-        << ", maxG=" << s.max_group_size << "\n" << "   baseline=" << baseline  << ", aggregated_cost=" << agg_cost  << ", savings=" << savings  << ", NrOfFos " <<  n << ", scenario_time=" << scenarioTimeSec << "s\n\n";
+        cout << "Scenario " << scenario_id << " [type=" << s.aggregator_type << " alignment= " << static_cast<int>(s.align) << "] => " << "est=" << s.est_threshold << ", lst=" << s.lst_threshold
+        << ", maxG=" << s.max_group_size << "\n" << "   baseline=" << baseline  << ", aggregated_cost=" << agg_cost  << ", savings=" << savings  << ", NrOfFos " <<  scenarioSize << ", scenario_time=" << scenarioTimeSec << "s\n\n";
         scenario_id++;
     }
 
