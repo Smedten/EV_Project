@@ -372,6 +372,9 @@ vector<variant<Flexoffer, Tec_flexoffer>> parseEVDataToFlexOffers(const string& 
 
         double requiredHours = ceil(kWhDelivered / 7.2);
         int duration = static_cast<int>(requiredHours);
+        if (duration <= 0) {
+            continue;
+        }
         time_t durationInSeconds = static_cast<time_t>(requiredHours * 3600);
 
         time_t latestStartTime = doneChargingTime - durationInSeconds;
@@ -386,9 +389,7 @@ vector<variant<Flexoffer, Tec_flexoffer>> parseEVDataToFlexOffers(const string& 
         if (!isSameLocalDay(connectionTime, end_time)) {
             continue;
         }
-
-
-        auto [minPower, maxPower] = calculatePowerRange(kWhDelivered / duration, duration);
+        auto [minPower, maxPower] = calculatePowerRange(kWhDelivered, duration);
         vector<TimeSlice> profile(duration, {minPower, maxPower});
 
         double actualMinEnergy = minPower * duration;
