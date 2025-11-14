@@ -1,5 +1,6 @@
 #include <vector>
 #include <iostream>
+#include <cmath>
 
 #include "../include/unit_test.h"
 #include "../include/helperfunctions.h"
@@ -12,6 +13,7 @@ int flexoffer_unittest();
 int tec_unittest();
 int nToMAggregationWithStartAlignment_unittest();
 int nToMAggregationWithBalanceAlignment_unittest();
+int scheduledFlexOfferDisaggregation_unittest();
 
 int runUnitTests(){
     int parsing = 0;
@@ -29,6 +31,9 @@ int runUnitTests(){
     } else return error;
     if(nToMAggregationWithBalanceAlignment_unittest()){
        cout << "nToMAggregation with balance alignment unit test passed.\n";
+    } else return error;
+    if(scheduledFlexOfferDisaggregation_unittest()){
+       cout << "Scheduled flex-offer disaggregation unit test passed.\n";
     } else return error;
 
     return parsing;
@@ -201,7 +206,7 @@ int nToMAggregationWithBalanceAlignment_unittest(){
 
     if(afos.size() != 1){
         cout << "nToMAggregation_balance test has failed. The size of the aggregated FO vector was "
-             << afos.size() << " but was expected to be 1.\n"; 
+             << afos.size() << " but was expected to be 1.\n";
         return 0;
     }
     if(afos[0].get_aggregated_earliest()/3600 != 2){
@@ -237,3 +242,46 @@ int nToMAggregationWithBalanceAlignment_unittest(){
     
     return 1;
 };
+
+int scheduledFlexOfferDisaggregation_unittest(){
+    const time_t base = 1'700'000'000; // arbitrary fixed epoch base
+
+    vector<TimeSlice> profile1{{0.0, 2.0}, {1.0, 3.0}};
+    vector<TimeSlice> profile2{{0.5, 1.5}, {0.5, 2.5}};
+
+    Flexoffer offer1(1, base, base + 1 * 3600, base + 2 * 3600, profile1, 2);
+    Flexoffer offer2(2, base + 1 * 3600, base + 2 * 3600, base + 3 * 3600, profile2, 2);
+
+    vector<Flexoffer> offers{offer1, offer2};
+
+    AggregatedFlexOffer aggregated(100, Alignments::start, offers);
+    aggregated.set_aggregated_scheduled_start_time(aggregated.get_aggregated_earliest());
+
+    ScheduledFlexOffer scheduled(aggregated);
+    scheduled.n_to_1_disaggregation(offers, aggregated);
+
+    for (const auto &flex : offers) {
+        const auto allocation = flex.get_scheduled_allocation();
+        if (allocation.size() != static_cast<size_t>(flex.get_duration())) {
+            cout << "Scheduled disaggregation test failed. Allocation size mismatch for offer "
+                 << flex.get_offer_id() << "\n";
+            return 0;
+        }
+
+        for (double value : allocation) {
+            if (!std::isfinite(value)) {
+                cout << "Scheduled disaggregation test failed. Non-finite allocation for offer "
+                     << flex.get_offer_id() << "\n";
+                return 0;
+            }
+        }
+
+        if (flex.get_scheduled_start_time() != flex.get_est()) {
+            cout << "Scheduled disaggregation test failed. Start time mismatch for offer "
+                 << flex.get_offer_id() << "\n";
+            return 0;
+        }
+    }
+
+    return 1;
+}
