@@ -21,12 +21,19 @@ A requirement for building the project is having the CPLEX solver installed on y
     - Command: ```./output```
 
 # Running unit tests
-```./output --run_tests``` 
+```./output --run_tests```
+
+# Running the interactive demo
+1. Ensure the Python dependencies are available
+   - Command: ```pip install pandas matplotlib```
+2. Launch the interactive dashboard from the `visuals` folder
+   - Command: ```python3 visuals/demo_dashboard.py```
+3. Use the radio buttons and slider to set aggregator and alignment modes, then press **Show demo** to update the plots.
 
 # Generating graphs
 To generate the graphs used in the report:
 1. Step into the visuals folder (assuming you are in the projects root folder)
-    - Command: ```cd visuals``` 
+    - Command: ```cd visuals```
 2. Make sure the pip libraries pandas and matplotlib are installed
     - Command: ```pip install pandas && pip install matplotlib```
 3. Run the Python file
